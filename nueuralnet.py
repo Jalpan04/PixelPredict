@@ -1,8 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import random
 
-# Load the MNIST dataset (images and labels)
+# ---------- Load MNIST ----------
 def load_images(filepath):
     with open(filepath, 'rb') as f:
         _ = int.from_bytes(f.read(4), 'big')  # magic number
@@ -10,37 +9,35 @@ def load_images(filepath):
         num_rows = int.from_bytes(f.read(4), 'big')
         num_cols = int.from_bytes(f.read(4), 'big')
         data = np.frombuffer(f.read(), dtype=np.uint8)
-    return data.reshape(num_images, num_rows, num_cols)
+    return data.reshape(num_images, num_rows * num_cols) / 255.0  # Normalize to [0, 1]
 
 def load_labels(filepath):
     with open(filepath, 'rb') as f:
-        _ = int.from_bytes(f.read(4), 'big')  # magic number
+        _ = int.from_bytes(f.read(4), 'big')
         num_labels = int.from_bytes(f.read(4), 'big')
         labels = np.frombuffer(f.read(), dtype=np.uint8)
     return labels
 
-# Activation functions
+# ---------- Activations ----------
 def relu(Z):
     return np.maximum(0, Z)
 
-def relu_derivative(Z):
-    return Z > 0
-
 def softmax(Z):
-    expZ = np.exp(Z - np.max(Z, axis=0, keepdims=True))  # Stability fix
+    expZ = np.exp(Z - np.max(Z, axis=0, keepdims=True))
     return expZ / expZ.sum(axis=0, keepdims=True)
 
+# ---------- Loss and Accuracy ----------
 def cross_entropy_loss(Y_pred, Y_true, epsilon=1e-12):
     m = Y_true.shape[0]
-    log_likelihood = -np.log(Y_pred[Y_true, range(m)] + epsilon)  # epsilon to prevent log(0)
-    loss = np.sum(log_likelihood) / m
-    return loss
+    correct_probs = Y_pred[Y_true, range(m)]
+    log_likelihood = -np.log(correct_probs + epsilon)
+    return np.sum(log_likelihood) / m
 
 def accuracy(Y_pred, Y_true):
     preds = np.argmax(Y_pred, axis=0)
     return np.mean(preds == Y_true)
 
-# Forward pass
+# ---------- Forward Pass ----------
 def forward_pass(X, W1, b1, W2, b2):
     Z1 = W1 @ X + b1
     A1 = relu(Z1)
@@ -48,7 +45,7 @@ def forward_pass(X, W1, b1, W2, b2):
     A2 = softmax(Z2)
     return Z1, A1, Z2, A2
 
-# Backward pass
+# ---------- Backward Pass ----------
 def backward_pass(X, Y_true, Z1, A1, Z2, A2, W2):
     m = X.shape[1]
     Y_one_hot = np.zeros_like(A2)
@@ -59,13 +56,13 @@ def backward_pass(X, Y_true, Z1, A1, Z2, A2, W2):
     db2 = (1 / m) * np.sum(dZ2, axis=1, keepdims=True)
 
     dA1 = W2.T @ dZ2
-    dZ1 = dA1 * relu_derivative(Z1)
+    dZ1 = dA1 * (Z1 > 0).astype(float)
     dW1 = (1 / m) * dZ1 @ X.T
     db1 = (1 / m) * np.sum(dZ1, axis=1, keepdims=True)
 
     return dW1, db1, dW2, db2
 
-# Training the model
+# ---------- Training ----------
 def train(X_train, y_train, X_test, y_test, hidden_size=128, epochs=20, batch_size=64, learning_rate=0.01):
     input_size = 784
     output_size = 10
@@ -88,13 +85,13 @@ def train(X_train, y_train, X_test, y_test, hidden_size=128, epochs=20, batch_si
             Z1, A1, Z2, A2 = forward_pass(X_batch, W1, b1, W2, b2)
             dW1, db1, dW2, db2 = backward_pass(X_batch, y_batch, Z1, A1, Z2, A2, W2)
 
-            # Update weights
+            # Gradient descent
             W1 -= learning_rate * dW1
             b1 -= learning_rate * db1
             W2 -= learning_rate * dW2
             b2 -= learning_rate * db2
 
-        # Evaluate loss and accuracy
+        # Evaluate after each epoch
         _, _, _, A2_train = forward_pass(X_train.T, W1, b1, W2, b2)
         _, _, _, A2_test = forward_pass(X_test.T, W1, b1, W2, b2)
 
@@ -107,48 +104,45 @@ def train(X_train, y_train, X_test, y_test, hidden_size=128, epochs=20, batch_si
 
     return W1, b1, W2, b2
 
-# Prediction function
+# ---------- Prediction ----------
 def predict(X, W1, b1, W2, b2):
     _, _, _, A2 = forward_pass(X, W1, b1, W2, b2)
     return A2
 
-# Visualization of random predictions with console output
+# ---------- Quick Visualization ----------
 def plot_predictions(X, y, W1, b1, W2, b2, num_samples=10):
-    indices = np.random.choice(X.shape[0], num_samples, replace=False)  # Random indices
+    indices = np.random.choice(X.shape[0], num_samples, replace=False)
 
     plt.figure(figsize=(num_samples * 2, 2))
     for i, idx in enumerate(indices):
-        plt.subplot(1, num_samples, i + 1)
-
         X_input = X[idx].reshape(784, 1)
         prediction = predict(X_input, W1, b1, W2, b2)
         predicted_label = np.argmax(prediction)
-
         image = X[idx].reshape(28, 28)
 
+        plt.subplot(1, num_samples, i + 1)
         plt.imshow(image, cmap='gray')
         plt.title(f"Act: {y[idx]}\nPred: {predicted_label}")
         plt.axis('off')
 
-        # Print in console
-        print(f"Image {i + 1}: Actual label: {y[idx]}, Predicted label: {predicted_label}")
+        print(f"Image {i + 1}: Actual label: {y[idx]}, Predicted: {predicted_label}")
 
+    plt.tight_layout(pad=1.0)  # Adjust layout to prevent cutting off
     plt.show()
 
-# Main script
+
+# ---------- Main ----------
 if __name__ == "__main__":
-    # Load the data
+    np.random.seed(42)
+
+    # Load data
     X_train = load_images('data/train-images.idx3-ubyte')
     y_train = load_labels('data/train-labels.idx1-ubyte')
     X_test = load_images('data/t10k-images.idx3-ubyte')
     y_test = load_labels('data/t10k-labels.idx1-ubyte')
 
-    # Flatten the images
-    X_train = X_train.reshape(X_train.shape[0], -1)
-    X_test = X_test.reshape(X_test.shape[0], -1)
-
-    # Train the model
+    # Train model
     W1, b1, W2, b2 = train(X_train, y_train, X_test, y_test)
 
-    # Plot random predictions
+    # Plot predictions
     plot_predictions(X_test, y_test, W1, b1, W2, b2, num_samples=10)
