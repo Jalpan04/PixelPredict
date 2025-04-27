@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digit Recognition</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #121212;
+            color: #e0e0e0;
+        }
+
+        h1 {
+            color: #ffffff;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .canvas-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            margin: 0 auto 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+        }
+
+        canvas {
+            background-color: white;
+            display: block;
+            width: 280px;
+            height: 280px;
+            touch-action: none;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+
+        #predict {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #predict:hover {
+            background-color: #45a049;
+        }
+
+        #clear {
+            background-color: #f44336;
+            color: white;
+        }
+
+        #clear:hover {
+            background-color: #d32f2f;
+        }
+
+        #result {
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 20px 0;
+            min-height: 40px;
+            color: #ffffff;
+        }
+
+        .confidence-bars {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            gap: 5px;
+        }
+
+        .confidence-bar {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .digit-label {
+            margin-bottom: 5px;
+            color: #e0e0e0;
+        }
+
+        .bar-container {
+            width: 100%;
+            height: 100px;
+            background-color: #333333;
+            border-radius: 4px;
+            position: relative;
+        }
+
+        .bar {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background-color: #2196F3;
+            border-radius: 4px;
+            transition: height 0.3s ease;
+        }
+
+        .highest {
+            background-color: #4CAF50;
+        }
+
+        .instructions {
+            text-align: center;
+            color: #bbbbbb;
+            margin: 20px 0;
+        }
+
+        .pixel-info {
+            text-align: center;
+            color: #888888;
+            margin-top: 5px;
+            font-size: 12px;
+        }
+
+        @media (max-width: 500px) {
+            .confidence-bars {
+                flex-wrap: wrap;
+            }
+
+            .confidence-bar {
+                flex-basis: 18%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Digit Recognition</h1>
+    <div class="instructions">Draw a digit (0-9) in the box below</div>
+
+    <div class="canvas-container">
+        <canvas id="drawCanvas" width="28px" height="28px"></canvas>
+    </div>
+    <div class="pixel-info">Drawing directly at 28 x 28 pixel resolution</div>
+
+    <div class="controls">
+        <button id="clear">Clear</button>
+        <button id="predict">Recognize</button>
+    </div>
+
+    <div id="result"></div>
+
+    <div class="confidence-bars">
+        <div class="confidence-bar">
+            <div class="digit-label">0</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-0" style="height: 0%"></div>
+            </div>
+        </div>
+        <div class="confidence-bar">
+            <div class="digit-label">1</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-1" style="height: 0%"></div>
+            </div>
+        </div>
+        <div class="confidence-bar">
+            <div class="digit-label">2</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-2" style="height: 0%"></div>
+            </div>
+        </div>
+        <div class="confidence-bar">
+            <div class="digit-label">3</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-3" style="height: 0%"></div>
+            </div>
+        </div>
+        <div class="confidence-bar">
+            <div class="digit-label">4</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-4" style="height: 0%"></div>
+            </div>
+        </div>
+        <div class="confidence-bar">
+            <div class="digit-label">5</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-5" style="height: 0%"></div>
+            </div>
+        </div>
+        <div class="confidence-bar">
+            <div class="digit-label">6</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-6" style="height: 0%"></div>
+            </div>
+        </div>
+        <div class="confidence-bar">
+            <div class="digit-label">7</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-7" style="height: 0%"></div>
+            </div>
+        </div>
+        <div class="confidence-bar">
+            <div class="digit-label">8</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-8" style="height: 0%"></div>
+            </div>
+        </div>
+        <div class="confidence-bar">
+            <div class="digit-label">9</div>
+            <div class="bar-container">
+                <div class="bar" id="bar-9" style="height: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('drawCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+
+        // Scale factor for display
+        const displayScale = 10; // 28 × 10 = 280px displayed size
+
+        // Initialize canvas
+        function initCanvas() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.lineWidth = 1; // 1px width for drawing
+            ctx.strokeStyle = 'black';
+        }
+
+        initCanvas();
+
+        // Helper to convert display coordinates to canvas pixel coordinates
+        function displayToCanvasCoord(displayCoord, dimension) {
+            return Math.floor(displayCoord / (dimension === 'width' ?
+                (canvas.clientWidth / canvas.width) :
+                (canvas.clientHeight / canvas.height)));
+        }
+
+        // Event listeners for mouse
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseout', stopDrawing);
+
+        // Event listeners for touch
+        canvas.addEventListener('touchstart', startTouchDrawing);
+        canvas.addEventListener('touchmove', touchDraw);
+        canvas.addEventListener('touchend', stopDrawing);
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            lastX = displayToCanvasCoord(e.clientX - rect.left, 'width');
+            lastY = displayToCanvasCoord(e.clientY - rect.top, 'height');
+            drawPixel(lastX, lastY);
+        }
+
+        function startTouchDrawing(e) {
+            e.preventDefault();
+            isDrawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            lastX = displayToCanvasCoord(touch.clientX - rect.left, 'width');
+            lastY = displayToCanvasCoord(touch.clientY - rect.top, 'height');
+            drawPixel(lastX, lastY);
+        }
+
+        function drawPixel(x, y) {
+            // Draw a single pixel
+            ctx.fillStyle = 'black';
+            ctx.fillRect(x, y, 1, 1);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const x = displayToCanvasCoord(e.clientX - rect.left, 'width');
+            const y = displayToCanvasCoord(e.clientY - rect.top, 'height');
+
+            // Draw a line between points (simplified Bresenham's line algorithm)
+            const dx = Math.abs(x - lastX);
+            const dy = Math.abs(y - lastY);
+            const sx = (lastX < x) ? 1 : -1;
+            const sy = (lastY < y) ? 1 : -1;
+            let err = dx - dy;
+
+            while (true) {
+                drawPixel(lastX, lastY);
+
+                if (lastX === x && lastY === y) break;
+
+                const e2 = 2 * err;
+                if (e2 > -dy) {
+                    if (lastX === x) break;
+                    err -= dy;
+                    lastX += sx;
+                }
+                if (e2 < dx) {
+                    if (lastY === y) break;
+                    err += dx;
+                    lastY += sy;
+                }
+            }
+
+            lastX = x;
+            lastY = y;
+        }
+
+        function touchDraw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = displayToCanvasCoord(touch.clientX - rect.left, 'width');
+            const y = displayToCanvasCoord(touch.clientY - rect.top, 'height');
+
+            // Use the same line drawing algorithm as for mouse
+            const dx = Math.abs(x - lastX);
+            const dy = Math.abs(y - lastY);
+            const sx = (lastX < x) ? 1 : -1;
+            const sy = (lastY < y) ? 1 : -1;
+            let err = dx - dy;
+
+            while (true) {
+                drawPixel(lastX, lastY);
+
+                if (lastX === x && lastY === y) break;
+
+                const e2 = 2 * err;
+                if (e2 > -dy) {
+                    if (lastX === x) break;
+                    err -= dy;
+                    lastX += sx;
+                }
+                if (e2 < dx) {
+                    if (lastY === y) break;
+                    err += dx;
+                    lastY += sy;
+                }
+            }
+
+            lastX = x;
+            lastY = y;
+        }
+
+        function stopDrawing() {
+            isDrawing = false;
+        }
+
+        // Process canvas to grayscale
+        function processToGrayscale() {
+            // Get the image data directly from the 28x28 canvas
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = imageData.data;
+
+            // Convert to grayscale (invert colors because ML models expect white digits on black background)
+            for (let i = 0; i < data.length; i += 4) {
+                // Grayscale conversion using luminance formula
+                const gray = 255 - (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]);
+                data[i] = gray;
+                data[i + 1] = gray;
+                data[i + 2] = gray;
+            }
+
+            // Create a temporary canvas to hold the grayscale image
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.putImageData(imageData, 0, 0);
+
+            return tempCanvas.toDataURL('image/png').split(',')[1]; // Base64 string
+        }
+
+        // Clear canvas
+        document.getElementById('clear').addEventListener('click', () => {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            document.getElementById('result').innerText = '';
+            resetConfidenceBars();
+        });
+
+        // Predict button click
+        document.getElementById('predict').addEventListener('click', () => {
+            const imageData = processToGrayscale();
+            document.getElementById('result').innerText = 'Processing...';
+
+            // Add loading state to button
+            const predictBtn = document.getElementById('predict');
+            const originalText = predictBtn.innerText;
+            predictBtn.innerText = 'Processing...';
+            predictBtn.disabled = true;
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    image: imageData,
+                    width: 28,
+                    height: 28,
+                    grayscale: true
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                document.getElementById('result').innerText = `Predicted: ${data.prediction}`;
+
+                // If the server returns confidence scores, update the bars
+                if (data.confidences) {
+                    updateConfidenceBars(data.confidences);
+                } else {
+                    // Simulate some confidence scores if not provided by server
+                    const mockConfidences = Array(10).fill(0);
+                    mockConfidences[data.prediction] = 0.9;
+                    updateConfidenceBars(mockConfidences);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('result').innerText = 'Error: Could not process image';
+            })
+            .finally(() => {
+                // Reset button state
+                predictBtn.innerText = originalText;
+                predictBtn.disabled = false;
+            });
+        });
+
+        function updateConfidenceBars(confidences) {
+            // Reset all bars
+            resetConfidenceBars();
+
+            // Find highest confidence for highlighting
+            const maxVal = Math.max(...confidences);
+            const maxIndex = confidences.indexOf(maxVal);
+
+            // Update each bar with its confidence value
+            confidences.forEach((conf, i) => {
+                const bar = document.getElementById(`bar-${i}`);
+                const height = conf * 100;
+                bar.style.height = `${height}%`;
+
+                // Highlight the bar with highest confidence
+                if (i === maxIndex) {
+                    bar.classList.add('highest');
+                }
+            });
+        }
+
+        function resetConfidenceBars() {
+            for (let i = 0; i < 10; i++) {
+                const bar = document.getElementById(`bar-${i}`);
+                bar.style.height = '0%';
+                bar.classList.remove('highest');
+            }
+        }
+    </script>
+</body>
+</html>
