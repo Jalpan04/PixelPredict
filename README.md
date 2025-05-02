@@ -18,7 +18,7 @@
 
 Try the live demo at [https://number-id.onrender.com/](https://number-id.onrender.com/)
 
-![PixelPredict Demo](https://img.shields.io/badge/PixelPredict-Demo_Screenshot-lightgrey?style=for-the-badge)
+![PixelPredict Demo](demo.png)
 
 ## ✨ Features
 
