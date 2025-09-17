@@ -202,10 +202,7 @@ Contributions are welcome! Here's how you can contribute:
 5. **Submit** a Pull Request
 
 ## License
-
-This project is licensed under the GNU General Public License v3.0.
-
-Note that some components of this project were originally licensed under the MIT license. The original MIT license is included in the [LICENSE](LICENSE) file.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
